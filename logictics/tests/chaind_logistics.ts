@@ -2,7 +2,7 @@ import * as anchor from "@anchor-lang/core";
 import { Program } from "@anchor-lang/core";
 import { expect } from "chai";
 import * as crypto from "crypto";
-import { Logictics } from "../target/types/logictics";
+import { ChaindLogistics } from "../target/types/chaind_logistics";
 
 const { PublicKey, Keypair, SystemProgram, LAMPORTS_PER_SOL } = anchor.web3;
 type PublicKeyT = InstanceType<typeof PublicKey>;
@@ -13,11 +13,11 @@ const CLOCK_SYSVAR_ID = new PublicKey(
   "SysvarC1ock11111111111111111111111111111111"
 );
 
-describe("logictics", () => {
+describe("chaind_logistics", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.logictics as Program<Logictics>;
+  const program = anchor.workspace.chaindLogistics as Program<ChaindLogistics>;
 
   const AGREEMENT_SEED = Buffer.from("agreement");
   const ORDER_SEED = Buffer.from("order");

@@ -18,7 +18,7 @@ declare_id!("D4Zu8fGYGib6G18fu9XmMbDDrQB8hFQd7ge1MUax1Pna");
 /// Escrow between a 3PL (provider), its client and a courier.
 /// The client's payment is released to the 3PL and the courier on delivery.
 #[program]
-pub mod logictics {
+pub mod chaind_logistics {
     use super::*;
 
     // --- Agreement: binds a 3PL, a client and a courier ---
