@@ -1,11 +1,15 @@
 pub mod constants;
 pub mod error;
+pub mod events;
 pub mod instructions;
+pub mod math;
 pub mod state;
+pub mod state_machine;
 
 use anchor_lang::prelude::*;
 
 pub use constants::*;
+pub use events::*;
 pub use instructions::*;
 pub use state::*;
 
@@ -20,8 +24,12 @@ pub mod logictics {
     // --- Agreement: binds a 3PL, a client and a courier ---
 
     /// 3PL proposes terms to a client and names the courier.
-    pub fn init_agreement(ctx: Context<InitAgreement>, delivery_timeout: i64) -> Result<()> {
-        crate::instructions::init_agreement::handle_init_agreement(ctx, delivery_timeout)
+    pub fn init_agreement(
+        ctx: Context<InitAgreement>,
+        courier: Pubkey,
+        delivery_timeout: i64,
+    ) -> Result<()> {
+        crate::instructions::init_agreement::handle_init_agreement(ctx, courier, delivery_timeout)
     }
 
     /// Client accepts; terms now bind.
