@@ -6,6 +6,4 @@ pub enum ErrorCode {
     Unauthorized,
     #[msg("Counter has reached the maximum value")]
     CounterOverflow,
-    #[msg("Lockup time not yet ended")]
-    NotYetFinished,
 }

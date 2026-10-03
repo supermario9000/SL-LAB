@@ -1,4 +1,4 @@
-# live
+# Logictics
 
 The chronicles of SL lab - the mightiest Lithuanian team from Vilnius University.
 
@@ -6,9 +6,7 @@ Currently at: HackYeah.pl
 
 Devcontainer environment for the Superteam Poland Solana Bootcamp.
 
-This branch (`master`) provides the pre-configured development environment for the live-coding sessions.
-
-## Getting Started
+## Opening work enviroment
 
 ### VS Code
 1. Open this repository in VS Code.
@@ -22,12 +20,6 @@ This branch (`master`) provides the pre-configured development environment for t
 
 ### Terminal
 ```bash
-sudo docker build -t live .
-docker run --rm --interactive --tty live
-```
-
-## To initialize Anchor project 
-
-```bash
-anchor init --no-git --package-manager npm --test-template mocha diamond-hands
+sudo docker build -t logictics-image .
+sudo docker run --rm --interactive --tty --name logictics-container -v "$(pwd)/logictics/":/workspace -w /workspace logictics-image
 ```

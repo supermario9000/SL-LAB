@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-diamond_hands = "EjymiXi4eWFKdCJmQKjHv9nFr3uFmaUYQJaicQjTbrcn"
+logictics = "D4Zu8fGYGib6G18fu9XmMbDDrQB8hFQd7ge1MUax1Pna"
 
 [provider]
 cluster = "localnet"
