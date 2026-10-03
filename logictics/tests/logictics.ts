@@ -3,27 +3,11 @@ import { Program } from "@anchor-lang/core";
 import { Logictics } from "../target/types/logictics";
 
 describe("logictics", () => {
-  // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.logictics as Program<Logictics>;
 
-  it("Initializes and increments a counter", async () => {
-    const [counter] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("counter")],
-      program.programId
-    );
-
-    const initializeTx = await program.methods
-      .initialize()
-      .accountsPartial({ counter })
-      .rpc();
-    console.log("Initialize transaction signature", initializeTx);
-
-    const incrementTx = await program.methods
-      .increment()
-      .accountsPartial({ counter })
-      .rpc();
-    console.log("Increment transaction signature", incrementTx);
+  it("exposes the order flow", async () => {
+    console.log("Program id", program.programId.toBase58());
   });
 });

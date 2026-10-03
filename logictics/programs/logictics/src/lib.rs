@@ -11,15 +11,75 @@ pub use state::*;
 
 declare_id!("D4Zu8fGYGib6G18fu9XmMbDDrQB8hFQd7ge1MUax1Pna");
 
+/// Two-party escrow between a 3PL (provider) and its client.
+/// The courier is paid by the 3PL off-chain.
 #[program]
 pub mod logictics {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        crate::instructions::initialize::handle_initialize(ctx)
+    // --- Agreement: binds a 3PL and a client ---
+
+    /// 3PL proposes terms to a client.
+    pub fn init_agreement(ctx: Context<InitAgreement>, delivery_timeout: i64) -> Result<()> {
+        crate::instructions::init_agreement::handle_init_agreement(ctx, delivery_timeout)
     }
 
-    pub fn increment(ctx: Context<Increment>) -> Result<()> {
-        crate::instructions::increment::handle_increment(ctx)
+    /// Client accepts; terms now bind.
+    pub fn accept_agreement(ctx: Context<AcceptAgreement>) -> Result<()> {
+        crate::instructions::accept_agreement::handle_accept_agreement(ctx)
+    }
+
+    // --- Order lifecycle: Created -> Processed -> Paid -> Invoiced -> Closed ---
+
+    /// 3PL registers an order. Status `Created`.
+    pub fn create_order(ctx: Context<CreateOrder>, order_id: u64) -> Result<()> {
+        crate::instructions::create_order::handle_create_order(ctx, order_id)
+    }
+
+    /// 3PL sets the fulfillment fee. Only while `Created`.
+    pub fn set_fulfillment_price(ctx: Context<SetFulfillmentPrice>, lamports: u64) -> Result<()> {
+        crate::instructions::set_fulfillment_price::handle_set_fulfillment_price(ctx, lamports)
+    }
+
+    /// 3PL sets the shipment fee. Only while `Created`.
+    pub fn set_shipment_price(ctx: Context<SetShipmentPrice>, lamports: u64) -> Result<()> {
+        crate::instructions::set_shipment_price::handle_set_shipment_price(ctx, lamports)
+    }
+
+    /// 3PL marks the order picked and packed. Prices lock. Status `Processed`.
+    pub fn mark_processed(ctx: Context<MarkProcessed>) -> Result<()> {
+        crate::instructions::mark_processed::handle_mark_processed(ctx)
+    }
+
+    /// Client moves exactly `expected_total` into escrow. Status `Paid`.
+    pub fn pay(ctx: Context<Pay>, expected_total: u64) -> Result<()> {
+        crate::instructions::pay::handle_pay(ctx, expected_total)
+    }
+
+    /// 3PL records the invoice hash. Status `Invoiced`.
+    pub fn send_invoice(ctx: Context<SendInvoice>, invoice_hash: [u8; 32]) -> Result<()> {
+        crate::instructions::send_invoice::handle_send_invoice(ctx, invoice_hash)
+    }
+
+    /// Client confirms delivery; escrow pays the 3PL. Status `Closed`.
+    pub fn confirm_delivery(ctx: Context<ConfirmDelivery>) -> Result<()> {
+        crate::instructions::confirm_delivery::handle_confirm_delivery(ctx)
+    }
+
+    // --- Exits: every order reaches a terminal state ---
+
+    /// 3PL or client cancels before payment. Status `Cancelled`.
+    pub fn cancel_order(ctx: Context<CancelOrder>) -> Result<()> {
+        crate::instructions::cancel_order::handle_cancel_order(ctx)
+    }
+
+    /// Client reclaims escrow if not invoiced by `paid_at + timeout`. Status `Refunded`.
+    pub fn refund_expired(ctx: Context<RefundExpired>) -> Result<()> {
+        crate::instructions::refund_expired::handle_refund_expired(ctx)
+    }
+
+    /// 3PL claims escrow if the client stays silent past `invoiced_at + timeout`. Status `Closed`.
+    pub fn claim_expired(ctx: Context<ClaimExpired>) -> Result<()> {
+        crate::instructions::claim_expired::handle_claim_expired(ctx)
     }
 }
