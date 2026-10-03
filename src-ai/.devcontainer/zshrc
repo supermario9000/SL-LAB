@@ -1,0 +1,40 @@
+export ZSH="$HOME/.oh-my-zsh"
+
+DISABLE_AUTO_UPDATE="true"
+DISABLE_UPDATE_PROMPT="true"
+ZSH_DISABLE_COMPFIX="true"
+
+# `agnoster` and friends need a patched font; `robbyrussell` renders correctly
+# in any terminal, which matters on a shared projector during the demo.
+ZSH_THEME="robbyrussell"
+
+plugins=(
+  git
+  rust
+  npm
+  zsh-autosuggestions
+  zsh-syntax-highlighting
+)
+
+source "$ZSH/oh-my-zsh.sh"
+
+HISTSIZE=10000
+SAVEHIST=10000
+setopt HIST_IGNORE_ALL_DUPS INC_APPEND_HISTORY
+
+alias ll='ls -la'
+alias la='ls -A'
+alias sol='solana'
+alias anc='anchor'
+alias sp='surfpool'
+alias g='git'
+alias t='anchor test'
+alias tb='anchor test --skip-build'
+alias b='anchor build'
+alias tc='npx tsc --noEmit'
+
+if [[ -o interactive ]]; then
+  print -P "%F{45}SL Lab%f — trustless checkout (Anchor/Solana)"
+  print -P "  %F{244}t%f   anchor test               %F{244}tc%f  typecheck"
+  print -P "  %F{244}b%f   anchor build              %F{244}tb%f  test --skip-build"
+fi
