@@ -1,4 +1,4 @@
-# Logictics
+# Chaind Logistics
 
 A trustless escrow between a 3PL (`provider`), its `client`, and a `courier`,
 on Solana devnet. The client's payment is held in escrow by the program and
@@ -10,7 +10,7 @@ rationale and `../PLAN.md` for the implementation plan this was built from.
 
 ```
 logictics/
-  programs/logictics/src/
+  programs/chaind_logistics/src/
     lib.rs              # #[program] module; only dispatches to instructions/<name>.rs
     constants.rs         # PDA seeds, delivery timeout bounds
     state.rs              # Agreement, Order, OrderStatus — fixed-size, append-only fields
@@ -19,7 +19,7 @@ logictics/
     error.rs                # ErrorCode, one #[msg] per variant
     events.rs                # one event per state change
     instructions/             # one file per instruction: Accounts struct + handle_<name>
-  tests/logictics.ts    # integration tests (Anchor + mocha/chai)
+  tests/chaind_logistics.ts    # integration tests (Anchor + mocha/chai)
   app/                   # Vite + React + Wallet Adapter UI (not yet scaffolded)
   scripts/               # sync-idl.sh, seed-demo.ts (not yet added)
 ```
@@ -32,18 +32,19 @@ see `../Dockerfile` / `../.devcontainer`):
 ```bash
 cd logictics
 anchor build && anchor keys sync   # keys sync only once
-cargo fmt --check && cargo clippy && cargo test -p logictics && anchor test
+cargo fmt --check && cargo clippy && cargo test -p chaind_logistics && anchor test
 ```
 
-`cargo test -p logictics` runs the pure-logic unit tests in `state_machine.rs`
+`cargo test -p chaind_logistics` runs the pure-logic unit tests in `state_machine.rs`
 and `math.rs` and needs no validator. `anchor test` additionally builds the
 on-chain program, boots a local validator, and runs every integration test in
-`tests/logictics.ts` against it.
+`tests/chaind_logistics.ts` against it.
 
-> This environment had no Anchor/Solana CLI or local validator available, so
-> only `cargo fmt`, `cargo clippy` and `cargo test -p logictics` were run here
-> (all green). `anchor test` needs to be run in the dev container above to
-> exercise the integration suite end to end.
+> Note: `[workspace.package].rust-version` in `Cargo.toml` must stay at or below
+> whatever rustc Anchor's bundled platform-tools actually ship (check with the
+> error from a failing `anchor build` — it reports the real version) — it is
+> a separate compiler from the one `rust-toolchain.toml` selects for plain
+> `cargo` commands, and setting `rust-version` above it breaks `anchor build`.
 
 ## Enforcement points (`grep -rn ENFORCES programs/`)
 

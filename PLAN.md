@@ -1,9 +1,9 @@
-# Implementation plan — Boxchain (crate: `logictics`)
+# Implementation plan — Boxchain (crate: `chaind_logistics`)
 
 Every step is one small, reviewable increment. A step is done when its files compile, its tests pass, and you have reviewed the diff:
 
 ```bash
-cargo fmt --check && cargo clippy && cargo test -p logictics && anchor test
+cargo fmt --check && cargo clippy && cargo test -p chaind_logistics && anchor test
 ```
 
 Status today: `lib.rs` lists all 11 instructions; every handler is an empty stub. The `Counter` leftovers in `constants.rs`, `error.rs` and `state.rs` are unused.
@@ -193,9 +193,9 @@ General rules for every handler: validate → mutate state (via `apply`) → emi
 
 ## Phase 4 — Tooling & devnet
 
-**Step 4.1 — `scripts/sync-idl.sh`**: copy `target/idl/logictics.json` and `target/types/logictics.ts` into `app/src/idl/`.
+**Step 4.1 — `scripts/sync-idl.sh`**: copy `target/idl/chaind_logistics.json` and `target/types/chaind_logistics.ts` into `app/src/idl/`.
 
-**Step 4.2 — devnet deploy.** Back up `target/deploy/logictics-keypair.json` (outside git). `anchor deploy --provider.cluster devnet`, then `anchor idl init` so Explorer decodes our instructions. *Ask before running.*
+**Step 4.2 — devnet deploy.** Back up `target/deploy/chaind_logistics-keypair.json` (outside git). `anchor deploy --provider.cluster devnet`, then `anchor idl init` so Explorer decodes our instructions. *Ask before running.*
 
 **Step 4.3 — `scripts/seed-demo.ts`**: creates three funded devnet wallets (or reads them from files outside git), runs agreement + one order up to `Processed`, prints the addresses for the demo.
 
@@ -211,7 +211,7 @@ General rules for every handler: validate → mutate state (via `apply`) → emi
 ## Phase 6 — Docs & submission
 
 **Step 6.1 — README**: repo map, how to run, output of `grep -rn ENFORCES programs/`, known limits.
-**Step 6.2 — AGENTS.md**: rename `fulfillment` → `logictics` where it names the crate.
+**Step 6.2 — AGENTS.md**: rename `fulfillment` → `chaind_logistics` where it names the crate.
 
 ### Known limits (go in the README)
 - The courier's delivery confirmation is trusted; there is no proof-of-delivery oracle.
