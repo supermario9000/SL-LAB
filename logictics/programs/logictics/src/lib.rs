@@ -11,15 +11,15 @@ pub use state::*;
 
 declare_id!("D4Zu8fGYGib6G18fu9XmMbDDrQB8hFQd7ge1MUax1Pna");
 
-/// Two-party escrow between a 3PL (provider) and its client.
-/// The courier is paid by the 3PL off-chain.
+/// Escrow between a 3PL (provider), its client and a courier.
+/// The client's payment is released to the 3PL and the courier on delivery.
 #[program]
 pub mod logictics {
     use super::*;
 
-    // --- Agreement: binds a 3PL and a client ---
+    // --- Agreement: binds a 3PL, a client and a courier ---
 
-    /// 3PL proposes terms to a client.
+    /// 3PL proposes terms to a client and names the courier.
     pub fn init_agreement(ctx: Context<InitAgreement>, delivery_timeout: i64) -> Result<()> {
         crate::instructions::init_agreement::handle_init_agreement(ctx, delivery_timeout)
     }
@@ -61,7 +61,8 @@ pub mod logictics {
         crate::instructions::send_invoice::handle_send_invoice(ctx, invoice_hash)
     }
 
-    /// Client confirms delivery; escrow pays the 3PL. Status `Closed`.
+    /// Courier confirms delivery; escrow pays the fulfillment fee to the 3PL
+    /// and the shipment fee to the courier. Status `Closed`.
     pub fn confirm_delivery(ctx: Context<ConfirmDelivery>) -> Result<()> {
         crate::instructions::confirm_delivery::handle_confirm_delivery(ctx)
     }
@@ -73,13 +74,8 @@ pub mod logictics {
         crate::instructions::cancel_order::handle_cancel_order(ctx)
     }
 
-    /// Client reclaims escrow if not invoiced by `paid_at + timeout`. Status `Refunded`.
+    /// Client reclaims the full escrow once `paid_at + timeout` has passed. Status `Refunded`.
     pub fn refund_expired(ctx: Context<RefundExpired>) -> Result<()> {
         crate::instructions::refund_expired::handle_refund_expired(ctx)
-    }
-
-    /// 3PL claims escrow if the client stays silent past `invoiced_at + timeout`. Status `Closed`.
-    pub fn claim_expired(ctx: Context<ClaimExpired>) -> Result<()> {
-        crate::instructions::claim_expired::handle_claim_expired(ctx)
     }
 }
