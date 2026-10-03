@@ -1,4 +1,4 @@
-# Logictics
+# Chaind Logistics
 
 The chronicles of SL lab - the mightiest Lithuanian team from Vilnius University.
 
@@ -20,6 +20,6 @@ Devcontainer environment for the Superteam Poland Solana Bootcamp.
 
 ### Terminal
 ```bash
-sudo docker build -t logictics-image .
-sudo docker run --rm --interactive --tty --name logictics-container -v "$(pwd)/logictics/":/workspace -w /workspace logictics-image
+sudo docker build -t chaind_logistics-image .
+sudo docker run --rm --interactive --tty --name chaind_logistics-container -v "$(pwd)/logictics/":/workspace -w /workspace chaind_logistics-image
 ```
