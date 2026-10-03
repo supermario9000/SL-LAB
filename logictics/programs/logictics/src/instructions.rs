@@ -1,6 +1,5 @@
 pub mod accept_agreement;
 pub mod cancel_order;
-pub mod claim_expired;
 pub mod confirm_delivery;
 pub mod create_order;
 pub mod init_agreement;
@@ -13,7 +12,6 @@ pub mod set_shipment_price;
 
 pub use accept_agreement::*;
 pub use cancel_order::*;
-pub use claim_expired::*;
 pub use confirm_delivery::*;
 pub use create_order::*;
 pub use init_agreement::*;
