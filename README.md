@@ -6,6 +6,34 @@ Currently at: HackYeah.pl
 
 Devcontainer environment for the Superteam Poland Solana Bootcamp.
 
+## How to run demo
+
+### Install crypto wallet extension
+Install a crypto wallet extension on your browser. The wallet must support devnet (our team used Solflare for development).
+
+### Add 3 crypto wallets
+Add 3 cryptowallets (1 for each party). There needs to be a 3PL, client and courier wallets. This action can be done on 3 different machines, does not matter.
+
+
+### Launch frontend
+Launch frontend with the command
+```bash
+npm install
+npm run dev
+```
+
+### Open website
+Open demo website on localhost. And log in with 3PL wallet.
+
+### Create an agreement
+Open demo website on localhost. Log in with the 3PL wallet and create an agreement by entering client and courier waller addresses.
+
+### Accept the agreement
+Log in with the client wallet and accept the agreement.
+
+### Create an order
+With the 3PL wallet create an order.
+
 ## Opening work enviroment
 
 ### VS Code
@@ -21,5 +49,5 @@ Devcontainer environment for the Superteam Poland Solana Bootcamp.
 ### Terminal
 ```bash
 sudo docker build -t chaind_logistics-image .
-sudo docker run --rm --interactive --tty --name chaind_logistics-container -v "$(pwd)/logictics/":/workspace -w /workspace chaind_logistics-image
+sudo docker run --rm --interactive --tty --name chaind_logistics-container -v "$(pwd)/chaind_logistics/":/workspace -w /workspace chaind_logistics-image
 ```
