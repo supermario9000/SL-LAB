@@ -8,15 +8,17 @@ Devcontainer environment for the Superteam Poland Solana Bootcamp.
 
 ## How to run demo
 
+### Install dependencies
+Install npm and docker.
+
 ### Install crypto wallet extension
-Install a crypto wallet extension on your browser. The wallet must support devnet (our team used Solflare for development).
+Install a crypto wallet extension on your browser. The wallet must support devnet (our team used Solflare for development). Set wallet network to devnet.
 
 ### Add 3 crypto wallets
 Add 3 cryptowallets (1 for each party). There needs to be a 3PL, client and courier wallets. This action can be done on 3 different machines, does not matter.
 
-
 ### Launch frontend
-Launch frontend with the command
+Launch frontend with the command:
 ```bash
 npm install
 npm run dev
