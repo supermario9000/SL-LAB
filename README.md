@@ -17,9 +17,13 @@ Install a crypto wallet extension on your browser. The wallet must support devne
 ### Add 3 crypto wallets
 Add 3 cryptowallets (1 for each party). There needs to be a 3PL, client and courier wallets. This action can be done on 3 different machines, does not matter.
 
+### Fund the crypto wallets
+Fund the crypto wallets via faucets, so that they can participate in transactions.
+
 ### Launch frontend
 Launch frontend with the command:
 ```bash
+cd frontend
 npm install
 npm run dev
 ```
@@ -34,9 +38,18 @@ Open demo website on localhost. Log in with the 3PL wallet and create an agreeme
 Log in with the client wallet and accept the agreement.
 
 ### Create an order
-With the 3PL wallet create an order.
+With the 3PL wallet create an order. Then set 3PL and courier payouts and mark it as processed.
 
-## Opening work enviroment
+### Pay SOL to escrow
+With the client wallet pay to the escrow.
+
+### Send invoice
+With the 3PL wallet issue the generated invoice.
+
+### Confirm order as delivered
+With the courier wallet confirm the order as delivered so all the funds get paid.
+
+## Developing the smart contract functionality
 
 ### VS Code
 1. Open this repository in VS Code.
