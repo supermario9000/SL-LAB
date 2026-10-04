@@ -1,6 +1,12 @@
 **/node_modules/
 .env*
 *.log
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # secret keys — never commit
 keypair.json
@@ -13,3 +19,14 @@ another-keypair.json
 **/target/
 **/.anchor/
 **/test-ledger/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -1,0 +1,194 @@
+/* Layout and component styles. Deliberately plain: the challenge values "works" over "pretty". */
+
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.header .banner { flex-basis: 100%; }
+.header h1 .pill { vertical-align: middle; font-size: 12px; font-weight: 500; }
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 16px;
+  align-items: start;
+}
+.grid > div { display: flex; flex-direction: column; gap: 16px; }
+@media (max-width: 800px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.mono { font-family: var(--mono); font-size: 13px; }
+.break { word-break: break-all; }
+.error { color: var(--danger); }
+.ok-text { color: var(--ok); }
+
+/* Buttons and inputs */
+button {
+  font: inherit;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-h);
+  cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.danger { color: var(--danger); border-color: var(--danger); }
+
+input:not([type='file']),
+select {
+  font: inherit;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.form select { width: auto; }
+
+.sub {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+summary { cursor: pointer; color: var(--accent); }
+
+/* Lists of agreements / orders */
+.list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.list li {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.list li button { align-self: flex-start; margin-top: 4px; }
+.list li.selected, .table tr.selected { background: var(--accent-bg); border-color: var(--accent); }
+
+.table { width: 100%; border-collapse: collapse; }
+.table th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 500; }
+.table td, .table th { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.table tbody tr { cursor: pointer; }
+
+/* Status pills */
+.pill {
+  display: inline-block;
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--code-bg);
+  white-space: nowrap;
+}
+.pill.ok, .status-closed { background: var(--ok-bg); color: var(--ok); }
+.pill.warn, .status-created, .status-processed { background: var(--warn-bg); color: var(--warn); }
+.status-paid, .status-invoiced { background: var(--info-bg); color: var(--accent); }
+.status-cancelled, .status-refunded { background: var(--danger-bg); color: var(--danger); }
+
+/* Order status timeline */
+.timeline {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0;
+  margin: 8px 0;
+}
+.timeline li {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--code-bg);
+  color: var(--muted);
+}
+.timeline li.done { background: var(--ok-bg); color: var(--ok); }
+.timeline li.off { background: var(--danger-bg); color: var(--danger); }
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 12px 0;
+}
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; }
+
+.banner {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.banner.warn { background: var(--warn-bg); color: var(--warn); }
+.banner.info { background: var(--info-bg); }
+
+.actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+.actions .form { align-self: stretch; }
+
+.txlog { list-style: none; padding: 0; margin: 0; font-size: 13px; }
+.txlog li { padding: 4px 0; border-bottom: 1px solid var(--border); }
+
+/* Invoice (generated from on-chain data, see src/lib/invoice.ts) */
+.invoice {
+  margin-top: 10px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+.invoice-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.invoice-lines { margin: 12px 0 8px; }
+.invoice-lines tbody tr { cursor: default; }
+.invoice-lines tfoot th { color: var(--text-h); font-size: 14px; }
+.num { text-align: right; white-space: nowrap; }
+
+/* "Download PDF" prints only the open invoice, in black on white. */
+@media print {
+  body * { visibility: hidden; }
+  .invoice, .invoice * { visibility: visible; color: #000 !important; }
+  .invoice { position: absolute; inset: 0 auto auto 0; width: 100%; border: none; background: #fff; }
+}

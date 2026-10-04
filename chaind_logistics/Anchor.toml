@@ -6,6 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
+
 chaind_logistics = "D4Zu8fGYGib6G18fu9XmMbDDrQB8hFQd7ge1MUax1Pna"
 
 [programs.localnet]
