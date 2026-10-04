@@ -27,12 +27,12 @@ Off-chain, not in the program: stock, pick/pack, courier pricelist, tracking.
 PDAs: `["agreement", provider, client]` and `["order", agreement, order_id_le]`. Payments are in SOL lamports only (SPL tokens are out of scope unless asked).
 
 ## Code layout
-- `programs/fulfillment/src/`:
+- `programs/chaind_logistics/src/`:
   - `lib.rs` only dispatches to `instructions/<name>.rs` (an Accounts struct plus `handle_<name>`), as in the course examples.
   - `state.rs` uses fixed-size fields only and new fields are appended, never reordered.
   - `state_machine.rs` and `math.rs` hold the pure, unit-tested logic.
   - Also `error.rs` and `events.rs`.
-- `tests/fulfillment.ts` holds the integration tests.
+- `tests/chaind_logistics.ts` holds the integration tests.
 - `app/` is Vite + React + `@anchor-lang/core` + Solana Wallet Adapter, with the IDL synced into `app/src/idl/`.
 - `scripts/` holds `sync-idl.sh` and `seed-demo.ts`.
 
@@ -48,13 +48,13 @@ PDAs: `["agreement", provider, client]` and `["order", agreement, order_id_le]`.
 Use the dev container from github.com/matzayonc/solana-live-course-2026 (Anchor 1.1.2, Rust 1.95.0, Surfpool, Node 24). Pin `rust-toolchain.toml` to 1.95.0.
 ```bash
 anchor build && anchor keys sync       # keys sync only once
-cargo test -p fulfillment && anchor test
+cargo test -p chaind_logistics && anchor test
 anchor deploy --provider.cluster devnet
 ```
-Before finishing any change, `cargo fmt --check && cargo clippy && cargo test -p fulfillment && anchor test` must pass.
+Before finishing any change, `cargo fmt --check && cargo clippy && cargo test -p chaind_logistics && anchor test` must pass.
 
 ## Agent rules
 - Interface changes update the program, the tests and the synced IDL together.
-- Never commit keypairs. `target/deploy/fulfillment-keypair.json` is the program id, so back it up.
+- Never commit keypairs. `target/deploy/chaind_logistics-keypair.json` is the program id, so back it up.
 - Ask the user before any irreversible action: `set-upgrade-authority --final`, `program close`, deploying under a new program id, or pushing.
 - Keep `README.md` current: repo map, how to run, the `ENFORCES` list, and known limits (e.g. the courier's delivery confirmation is trusted).
