@@ -35,8 +35,7 @@ export const STATUS_INFO: Record<
    },
 };
 
-// BACKEND-DEPENDENT: the happy path as drawn in Planning/flowchart.png. Should match the
-// transitions allowed in state_machine.rs.
+// MIRRORS: state_machine.rs `next()`: the happy path (also drawn in planning/flowchart.png).
 export const HAPPY_PATH: OrderStatus[] = [
    "Created",
    "Processed",

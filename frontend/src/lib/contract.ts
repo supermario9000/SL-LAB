@@ -1,11 +1,14 @@
 // The ONLY file that knows how the on-chain program's instructions and accounts are shaped.
 // Components call these functions and receive plain UI types (src/lib/types.ts).
-// When the real program lands, compare every BACKEND-DEPENDENT note here with the synced IDL.
+// Program source: chaind_logistics/programs/chaind_logistics/src/. Each MIRRORS note names the
+// file to compare with if the program changes.
 
 import { AnchorError, BN, type AccountClient, type Program } from "@coral-xyz/anchor";
 import {
+   Keypair,
    SystemProgram,
-   type Connection,
+   TransactionMessage,
+   VersionedTransaction,
    type PublicKey,
 } from "@solana/web3.js";
 import { PROGRAM_ID } from "../config";
@@ -20,15 +23,15 @@ import {
 
 // ---------- Reading accounts ----------
 
-// BACKEND-DEPENDENT: raw account field names as Anchor decodes them (snake_case in Rust
-// becomes camelCase in TS). Must match the `Agreement` and `Order` structs in state.rs.
+// MIRRORS: state.rs `Agreement` and `Order`. Field names as Anchor decodes them
+// (snake_case in Rust becomes camelCase in TS).
 interface RawAgreement {
    provider: PublicKey;
    client: PublicKey;
    courier: PublicKey;
    deliveryTimeout: BN;
    accepted: boolean;
-   orderCount: BN;
+   nextOrderId: BN;
 }
 interface RawOrder {
    agreement: PublicKey;
@@ -36,15 +39,15 @@ interface RawOrder {
    status: Record<string, object>; // Anchor decodes enums as e.g. { paid: {} }
    fulfillmentPrice: BN;
    shipmentPrice: BN;
+   createdAt: BN;
    paidAt: BN;
    invoiceHash: number[];
 }
 
 const toBigInt = (bn: BN) => BigInt(bn.toString());
 
-// With the generic (placeholder) IDL type, TypeScript doesn't know which account types exist,
-// so they are listed here by hand.
-// BACKEND-DEPENDENT: account names `agreement` / `order` (from `pub struct Agreement` / `Order`).
+// With the generic `Idl` type, TypeScript doesn't know which account types exist, so they are
+// listed here by hand (`pub struct Agreement` / `Order` become `agreement` / `order`).
 const accounts = (program: Program) =>
    program.account as unknown as Record<"agreement" | "order", AccountClient>;
 
@@ -63,13 +66,12 @@ function decodeAgreement(address: PublicKey, a: RawAgreement): Agreement {
       courier: a.courier,
       deliveryTimeoutSecs: a.deliveryTimeout.toNumber(),
       accepted: a.accepted,
-      orderCount: toBigInt(a.orderCount),
+      nextOrderId: toBigInt(a.nextOrderId),
    };
 }
 
 function decodeOrder(address: PublicKey, o: RawOrder): Order {
-   // BACKEND-DEPENDENT: assumes "not paid yet" is stored as paid_at = 0 and "no invoice"
-   // as an all-zero hash (instead of Option<...>).
+   // MIRRORS: state.rs: paid_at is 0 until paid, invoice_hash is all zeroes until invoiced.
    const paidAt = o.paidAt.toNumber();
    const hasInvoice = o.invoiceHash.some((b) => b !== 0);
    return {
@@ -79,6 +81,7 @@ function decodeOrder(address: PublicKey, o: RawOrder): Order {
       status: decodeStatus(o.status),
       fulfillmentPrice: toBigInt(o.fulfillmentPrice),
       shipmentPrice: toBigInt(o.shipmentPrice),
+      createdAt: o.createdAt.toNumber(),
       paidAt: paidAt > 0 ? paidAt : null,
       invoiceHash: hasInvoice
          ? o.invoiceHash.map((b) => b.toString(16).padStart(2, "0")).join("")
@@ -93,7 +96,6 @@ export async function fetchAgreements(program: Program): Promise<Agreement[]> {
    return all.map((a) => decodeAgreement(a.publicKey, a.account as RawAgreement));
 }
 
-// BACKEND-DEPENDENT: assumes the Order account stores its `agreement` pubkey.
 export async function fetchOrders(
    program: Program,
    agreement: PublicKey,
@@ -105,16 +107,47 @@ export async function fetchOrders(
       .sort((a, b) => Number(b.orderId - a.orderId));
 }
 
-export async function programIsDeployed(connection: Connection) {
+export type DeploymentStatus = "ok" | "missing" | "wrong-build" | "unknown";
+
+// Checks that a program exists at PROGRAM_ID AND that it was built for that address.
+// A binary built with a different declare_id! rejects every instruction with
+// DeclaredProgramIdMismatch, so we simulate one harmless call (no signature, no fee, no popup)
+// and look for that error. Needs a funded wallet as the simulated fee payer.
+export async function checkDeployment(
+   program: Program,
+): Promise<DeploymentStatus> {
+   const { connection } = program.provider;
    const info = await connection.getAccountInfo(PROGRAM_ID);
-   return info?.executable ?? false;
+   if (!info?.executable) return "missing";
+   try {
+      const payer = wallet(program);
+      const ix = await program.methods
+         .acceptAgreement()
+         .accountsPartial({ client: payer, agreement: Keypair.generate().publicKey })
+         .instruction();
+      const message = new TransactionMessage({
+         payerKey: payer,
+         recentBlockhash: payer.toBase58(), // replaced by the RPC (replaceRecentBlockhash)
+         instructions: [ix],
+      }).compileToV0Message();
+      const sim = await connection.simulateTransaction(new VersionedTransaction(message), {
+         sigVerify: false,
+         replaceRecentBlockhash: true,
+      });
+      const logs = sim.value.logs?.join("\n") ?? "";
+      if (logs.includes("DeclaredProgramIdMismatch")) return "wrong-build";
+      // Any other Anchor error (expected: the random agreement doesn't exist) means the
+      // program got past its id check, i.e. the build matches.
+      return logs.includes("AnchorError") ? "ok" : "unknown";
+   } catch {
+      return "unknown";
+   }
 }
 
 // ---------- Sending instructions ----------
 // Each function returns the transaction signature (for the explorer link).
-// BACKEND-DEPENDENT (all below): instruction names, argument types, and the account names
-// passed to accountsPartial() must match the Accounts structs in programs/fulfillment/src/instructions/.
-// accountsPartial() is used so that every account is passed explicitly and nothing depends on
+// MIRRORS (all below): lib.rs instruction signatures and the Accounts structs in
+// instructions/<name>.rs. accountsPartial() is used so that every account is passed explicitly and nothing depends on
 // Anchor's automatic account resolution.
 
 const wallet = (program: Program) => program.provider.publicKey!;
@@ -125,11 +158,10 @@ export async function initAgreement(
 ): Promise<string> {
    const provider = wallet(program);
    return program.methods
-      .initAgreement(new BN(args.deliveryTimeoutSecs))
+      .initAgreement(args.courier, new BN(args.deliveryTimeoutSecs))
       .accountsPartial({
          provider,
          client: args.client,
-         courier: args.courier,
          agreement: agreementPda(provider, args.client),
          systemProgram: SystemProgram.programId,
       })
@@ -146,14 +178,14 @@ export async function acceptAgreement(
       .rpc();
 }
 
-// BACKEND-DEPENDENT: assumes the new order's id is the agreement's current `order_count`
-// and that the program checks it (then increments the counter). If the program picks the id
-// itself without an argument, drop the argument but keep deriving the PDA from order_count.
+// The program requires order_id == agreement.next_order_id (create_order.rs), then increments it.
+// If two orders are registered at the same moment, the second fails with "Order id must be the
+// next id"; refreshing and retrying fixes it.
 export async function createOrder(
    program: Program,
    agreement: Agreement,
 ): Promise<string> {
-   const orderId = agreement.orderCount;
+   const orderId = agreement.nextOrderId;
    return program.methods
       .createOrder(new BN(orderId.toString()))
       .accountsPartial({
@@ -229,7 +261,7 @@ export async function sendInvoice(
       .rpc();
 }
 
-// BACKEND-DEPENDENT: the 3PL account must be passed (writable) so the program can pay it.
+// The 3PL's wallet is passed so the program can pay it; `has_one = provider` checks it.
 export async function confirmDelivery(
    program: Program,
    agreement: Agreement,
@@ -246,7 +278,7 @@ export async function confirmDelivery(
       .rpc();
 }
 
-// BACKEND-DEPENDENT: the signer account name for "3PL or client" is assumed to be `authority`.
+// The signer may be the 3PL or the client (cancel_order.rs checks which).
 export async function cancelOrder(
    program: Program,
    order: Order,
@@ -254,7 +286,7 @@ export async function cancelOrder(
    return program.methods
       .cancelOrder()
       .accountsPartial({
-         authority: wallet(program),
+         signer: wallet(program),
          agreement: order.agreement,
          order: order.address,
       })
@@ -280,14 +312,20 @@ export async function refundExpired(
 // Turns wallet/RPC/program errors into one readable line. Program errors show the
 // #[msg("...")] text from error.rs.
 export function describeError(err: unknown): string {
-   if (err instanceof AnchorError) return err.error.errorMessage;
    const e = err as { message?: string; logs?: string[] };
-   if (e?.logs) {
-      const parsed = AnchorError.parse(e.logs);
-      if (parsed) return parsed.error.errorMessage;
+   const anchorErr =
+      err instanceof AnchorError ? err : e?.logs ? AnchorError.parse(e.logs) : null;
+   if (anchorErr) {
+      // Anchor's own constraint errors fire when the wallet isn't the party the account expects
+      // (e.g. `has_one = provider` in the Accounts struct).
+      if (["ConstraintHasOne", "ConstraintSigner"].includes(anchorErr.error.errorCode.code))
+         return "Your wallet doesn't have the right role for this action on this agreement.";
+      return anchorErr.error.errorMessage;
    }
-   const msg = e?.message ?? String(err);
+   const msg = [e?.message ?? String(err), ...(e?.logs ?? [])].join("\n");
    if (/User rejected/i.test(msg)) return "You rejected the transaction in your wallet.";
+   if (/already in use/i.test(msg))
+      return "That account already exists (e.g. an agreement with this client, or an order id that was just used). Refresh and try again.";
    if (/program that does not exist|ProgramAccountNotFound/i.test(msg))
       return "The program is not deployed at the configured address on this network.";
    return msg;

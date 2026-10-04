@@ -65,7 +65,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 button.danger { color: var(--danger); border-color: var(--danger); }
 
-input:not([type='file']) {
+input:not([type='file']),
+select {
   font: inherit;
   padding: 6px 8px;
   border-radius: 6px;
@@ -78,6 +79,7 @@ input:not([type='file']) {
 
 .form { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 .form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.form select { width: auto; }
 
 .sub {
   margin-top: 12px;

@@ -1,52 +1,12 @@
 {
-  "address": "P1aceho1der11111111111111111111111111111111",
+  "address": "D4Zu8fGYGib6G18fu9XmMbDDrQB8hFQd7ge1MUax1Pna",
   "metadata": {
-    "name": "fulfillment",
-    "version": "0.0.0",
+    "name": "chaind_logistics",
+    "version": "0.1.0",
     "spec": "0.1.0",
-    "description": "PLACEHOLDER IDL written from AGENTS.md. Replace with target/idl/fulfillment.json after `anchor build`."
+    "description": "Created with Anchor"
   },
   "instructions": [
-    {
-      "name": "init_agreement",
-      "discriminator": [
-        162,
-        60,
-        0,
-        175,
-        214,
-        172,
-        200,
-        106
-      ],
-      "accounts": [
-        {
-          "name": "provider",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "client"
-        },
-        {
-          "name": "courier"
-        },
-        {
-          "name": "agreement",
-          "writable": true
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "delivery_timeout",
-          "type": "i64"
-        }
-      ]
-    },
     {
       "name": "accept_agreement",
       "discriminator": [
@@ -66,6 +26,65 @@
         },
         {
           "name": "agreement",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancel_order",
+      "discriminator": [
+        95,
+        129,
+        237,
+        240,
+        8,
+        49,
+        223,
+        132
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "signer": true
+        },
+        {
+          "name": "agreement"
+        },
+        {
+          "name": "order",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "confirm_delivery",
+      "discriminator": [
+        11,
+        109,
+        227,
+        53,
+        179,
+        190,
+        88,
+        155
+      ],
+      "accounts": [
+        {
+          "name": "courier",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "provider",
+          "writable": true
+        },
+        {
+          "name": "agreement"
+        },
+        {
+          "name": "order",
           "writable": true
         }
       ],
@@ -110,66 +129,43 @@
       ]
     },
     {
-      "name": "set_fulfillment_price",
+      "name": "init_agreement",
       "discriminator": [
-        24,
-        251,
-        20,
-        238,
-        144,
-        73,
-        146,
-        4
-      ],
-      "accounts": [
-        {
-          "name": "provider",
-          "signer": true
-        },
-        {
-          "name": "agreement"
-        },
-        {
-          "name": "order",
-          "writable": true
-        }
-      ],
-      "args": [
-        {
-          "name": "price",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "set_shipment_price",
-      "discriminator": [
-        218,
-        179,
         162,
-        85,
-        233,
-        32,
-        134,
-        34
+        60,
+        0,
+        175,
+        214,
+        172,
+        200,
+        106
       ],
       "accounts": [
         {
           "name": "provider",
+          "writable": true,
           "signer": true
         },
         {
-          "name": "agreement"
+          "name": "client"
         },
         {
-          "name": "order",
+          "name": "agreement",
           "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "price",
-          "type": "u64"
+          "name": "courier",
+          "type": "pubkey"
+        },
+        {
+          "name": "delivery_timeout",
+          "type": "i64"
         }
       ]
     },
@@ -238,6 +234,34 @@
       ]
     },
     {
+      "name": "refund_expired",
+      "discriminator": [
+        118,
+        153,
+        164,
+        244,
+        40,
+        128,
+        242,
+        250
+      ],
+      "accounts": [
+        {
+          "name": "client",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "agreement"
+        },
+        {
+          "name": "order",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "send_invoice",
       "discriminator": [
         237,
@@ -275,53 +299,20 @@
       ]
     },
     {
-      "name": "confirm_delivery",
+      "name": "set_fulfillment_price",
       "discriminator": [
-        11,
-        109,
-        227,
-        53,
-        179,
-        190,
-        88,
-        155
+        24,
+        251,
+        20,
+        238,
+        144,
+        73,
+        146,
+        4
       ],
       "accounts": [
-        {
-          "name": "courier",
-          "writable": true,
-          "signer": true
-        },
         {
           "name": "provider",
-          "writable": true
-        },
-        {
-          "name": "agreement"
-        },
-        {
-          "name": "order",
-          "writable": true
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "cancel_order",
-      "discriminator": [
-        95,
-        129,
-        237,
-        240,
-        8,
-        49,
-        223,
-        132
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "writable": true,
           "signer": true
         },
         {
@@ -332,24 +323,28 @@
           "writable": true
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "lamports",
+          "type": "u64"
+        }
+      ]
     },
     {
-      "name": "refund_expired",
+      "name": "set_shipment_price",
       "discriminator": [
-        118,
-        153,
-        164,
-        244,
-        40,
-        128,
-        242,
-        250
+        218,
+        179,
+        162,
+        85,
+        233,
+        32,
+        134,
+        34
       ],
       "accounts": [
         {
-          "name": "client",
-          "writable": true,
+          "name": "provider",
           "signer": true
         },
         {
@@ -360,7 +355,12 @@
           "writable": true
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "lamports",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -391,6 +391,63 @@
       ]
     }
   ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidTimeout",
+      "msg": "Delivery timeout must be between 1 second and 90 days"
+    },
+    {
+      "code": 6001,
+      "name": "PartiesNotDistinct",
+      "msg": "3PL, client and courier must be three different wallets"
+    },
+    {
+      "code": 6002,
+      "name": "AlreadyAccepted",
+      "msg": "This agreement has already been accepted"
+    },
+    {
+      "code": 6003,
+      "name": "AgreementNotAccepted",
+      "msg": "The client has not accepted this agreement yet"
+    },
+    {
+      "code": 6004,
+      "name": "WrongOrderId",
+      "msg": "Order id must be the next id for this agreement"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidTransition",
+      "msg": "This action is not allowed in the order's current status"
+    },
+    {
+      "code": 6006,
+      "name": "PriceNotSet",
+      "msg": "Set the fulfillment and shipment prices first"
+    },
+    {
+      "code": 6007,
+      "name": "TotalMismatch",
+      "msg": "The amount you approved does not match the order total"
+    },
+    {
+      "code": 6008,
+      "name": "NotAParty",
+      "msg": "Only the 3PL or the client can do this"
+    },
+    {
+      "code": 6009,
+      "name": "NotExpired",
+      "msg": "The delivery deadline has not passed yet"
+    },
+    {
+      "code": 6010,
+      "name": "MathOverflow",
+      "msg": "Amount is too large"
+    }
+  ],
   "types": [
     {
       "name": "Agreement",
@@ -418,7 +475,7 @@
             "type": "bool"
           },
           {
-            "name": "order_count",
+            "name": "next_order_id",
             "type": "u64"
           },
           {
@@ -456,6 +513,10 @@
           {
             "name": "shipment_price",
             "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
           },
           {
             "name": "paid_at",

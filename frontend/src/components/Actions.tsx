@@ -57,6 +57,10 @@ export function Actions({ agreement, order, now, onChanged }: Props) {
             />
          )}
 
+         {actions.includes("setPrices") && !actions.includes("markProcessed") && (
+            <p className="muted small">Set at least one fee above 0 to mark the order ready.</p>
+         )}
+
          {actions.includes("markProcessed") && (
             <button
                disabled={!!pending}
@@ -140,7 +144,6 @@ function PriceForm(props: {
    const submit = (value: string, cb: (l: bigint) => void) => {
       try {
          const lamports = parseSol(value);
-         if (lamports <= 0n) throw new Error("Amount must be greater than 0");
          setError(null);
          cb(lamports);
       } catch (e) {

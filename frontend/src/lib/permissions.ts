@@ -10,7 +10,8 @@ export function rolesFor(wallet: PublicKey, agreement: Agreement): Role[] {
    if (agreement.provider.equals(wallet)) roles.push("provider");
    if (agreement.client.equals(wallet)) roles.push("client");
    if (agreement.courier.equals(wallet)) roles.push("courier");
-   return roles; // one wallet may hold several roles in a single-wallet demo
+   // The program requires three distinct wallets, so this is normally a single role.
+   return roles;
 }
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -47,23 +48,22 @@ export function allowedOrderActions(
    const s = order.status;
    const actions: OrderAction[] = [];
 
-   // BACKEND-DEPENDENT: every condition below mirrors a rule in the program's state_machine.rs.
+   // MIRRORS: state_machine.rs `next()` (which status allows which action) and the signer
+   // checks in each instructions/<name>.rs (which role may call it).
    if (is("provider") && s === "Created") actions.push("setPrices");
-   // BACKEND-DEPENDENT: assumes mark_processed requires both prices to be set (> 0).
+   // MIRRORS: mark_processed.rs only requires the TOTAL to be > 0 (one fee may be 0).
    if (
       is("provider") &&
       s === "Created" &&
-      order.fulfillmentPrice > 0n &&
-      order.shipmentPrice > 0n
+      order.fulfillmentPrice + order.shipmentPrice > 0n
    )
       actions.push("markProcessed");
    if (is("client") && s === "Processed") actions.push("pay");
    if (is("provider") && s === "Paid") actions.push("sendInvoice");
-   // BACKEND-DEPENDENT: assumes confirm_delivery is only allowed after the invoice (Invoiced),
-   // as in the flowchart. If the program also allows it from Paid, add "Paid" here.
    if (is("courier") && s === "Invoiced") actions.push("confirmDelivery");
    if ((is("provider") || is("client")) && (s === "Created" || s === "Processed"))
       actions.push("cancel");
+   // MIRRORS: math.rs is_expired(): refund allowed once now >= paid_at + delivery_timeout.
    const refundAt = refundAvailableAt(agreement, order);
    if (
       is("client") &&

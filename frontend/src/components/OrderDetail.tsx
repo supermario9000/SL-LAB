@@ -35,6 +35,8 @@ export function OrderDetail({ agreement, order, onChanged }: Props) {
             <dd>
                <strong>{formatSol(total)}</strong>
             </dd>
+            <dt>Registered</dt>
+            <dd>{formatDate(order.createdAt)}</dd>
             <dt>Order account</dt>
             <dd>
                <Address value={order.address} />

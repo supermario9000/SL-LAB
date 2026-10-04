@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
-import { useConnection } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { CLUSTER, PROGRAM_ID, USING_PLACEHOLDER_IDL } from "../config";
-import { programIsDeployed } from "../lib/contract";
+import { CLUSTER, PROGRAM_ID } from "../config";
+import { useProgram } from "../hooks/useProgram";
+import { checkDeployment, type DeploymentStatus } from "../lib/contract";
 import { explorerAddress, shortAddress } from "../lib/format";
 
 export function Header() {
-   const { connection } = useConnection();
-   const [deployed, setDeployed] = useState<boolean | null>(null);
+   const program = useProgram();
+   const [status, setStatus] = useState<DeploymentStatus | null>(null);
 
+   // Runs once a wallet is connected (the check simulates a call with it as fee payer).
    useEffect(() => {
-      programIsDeployed(connection)
-         .then(setDeployed)
-         .catch(() => setDeployed(false));
-   }, [connection]);
+      if (!program) return;
+      let cancelled = false;
+      checkDeployment(program).then((s) => !cancelled && setStatus(s));
+      return () => {
+         cancelled = true;
+      };
+   }, [program]);
 
    return (
       <header className="header">
@@ -27,15 +31,16 @@ export function Header() {
             </p>
          </div>
          <WalletMultiButton />
-         {USING_PLACEHOLDER_IDL && (
+         {program && status === "missing" && (
             <div className="banner warn">
-               Using the placeholder IDL. Copy the real one to <code>frontend/src/idl/fulfillment.json</code>{" "}
-               after <code>anchor build</code>.
+               No program is deployed at {PROGRAM_ID.toBase58()} on {CLUSTER}.
             </div>
          )}
-         {!USING_PLACEHOLDER_IDL && deployed === false && (
+         {program && status === "wrong-build" && (
             <div className="banner warn">
-               No program is deployed at this address on {CLUSTER}.
+               The program at {PROGRAM_ID.toBase58()} was built for a different program id, so it rejects
+               every transaction. Rebuild with the matching <code>declare_id!</code> and redeploy, or set{" "}
+               <code>VITE_PROGRAM_ID</code> in <code>frontend/.env</code> to a correctly built deployment.
             </div>
          )}
       </header>

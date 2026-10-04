@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import { MAX_DELIVERY_TIMEOUT_SECS, MIN_DELIVERY_TIMEOUT_SECS } from "../config";
 import { useProgram } from "../hooks/useProgram";
 import { useTx } from "../hooks/useTx";
 import { acceptAgreement, initAgreement } from "../lib/contract";
 import { formatDuration } from "../lib/format";
+import { agreementPda } from "../lib/pda";
 import { ROLE_LABEL, rolesFor } from "../lib/permissions";
 import type { Agreement } from "../lib/types";
 import { Address } from "./Address";
@@ -56,7 +58,7 @@ export function AgreementPanel({ agreements, selected, onSelect, onChanged }: Pr
                      </div>
                      <div className="small muted">
                         Refund if not delivered within {formatDuration(a.deliveryTimeoutSecs)} of payment ·{" "}
-                        {a.orderCount.toString()} order(s)
+                        {a.nextOrderId.toString()} order(s)
                      </div>
                      {!a.accepted && roles.includes("client") && (
                         <button
@@ -74,22 +76,32 @@ export function AgreementPanel({ agreements, selected, onSelect, onChanged }: Pr
                );
             })}
          </ul>
-         <NewAgreementForm onChanged={onChanged} />
+         <NewAgreementForm agreements={agreements} onChanged={onChanged} />
       </section>
    );
 }
 
-function NewAgreementForm({ onChanged }: { onChanged: () => void }) {
+const UNIT_SECS = { minutes: 60, hours: 3600, days: 86400 } as const;
+
+function NewAgreementForm({
+   agreements,
+   onChanged,
+}: {
+   agreements: Agreement[];
+   onChanged: () => void;
+}) {
+   const wallet = useAnchorWallet();
    const program = useProgram();
    const { run, pending } = useTx();
    const [client, setClient] = useState("");
    const [courier, setCourier] = useState("");
-   const [timeoutHours, setTimeoutHours] = useState("72");
+   const [timeoutValue, setTimeoutValue] = useState("3");
+   const [unit, setUnit] = useState<keyof typeof UNIT_SECS>("days");
    const [formError, setFormError] = useState<string | null>(null);
 
    async function submit(e: React.FormEvent) {
       e.preventDefault();
-      if (!program) return;
+      if (!program || !wallet) return;
       let clientKey: PublicKey, courierKey: PublicKey;
       try {
          clientKey = new PublicKey(client.trim());
@@ -98,9 +110,20 @@ function NewAgreementForm({ onChanged }: { onChanged: () => void }) {
          setFormError("Client and courier must be valid Solana addresses.");
          return;
       }
-      const hours = Number(timeoutHours);
-      if (!(hours > 0)) {
-         setFormError("Delivery deadline must be a positive number of hours.");
+      // The program checks all of these too (init_agreement.rs); checking here first gives a
+      // clearer message and saves a failed transaction.
+      const me = wallet.publicKey;
+      if (clientKey.equals(me) || courierKey.equals(me) || clientKey.equals(courierKey)) {
+         setFormError("3PL (you), client and courier must be three different wallets.");
+         return;
+      }
+      if (agreements.some((a) => a.address.equals(agreementPda(me, clientKey)))) {
+         setFormError("You already have an agreement with this client (one per 3PL + client pair).");
+         return;
+      }
+      const secs = Math.round(Number(timeoutValue) * UNIT_SECS[unit]);
+      if (!(secs >= MIN_DELIVERY_TIMEOUT_SECS && secs <= MAX_DELIVERY_TIMEOUT_SECS)) {
+         setFormError("Delivery deadline must be between 1 second and 90 days.");
          return;
       }
       setFormError(null);
@@ -108,7 +131,7 @@ function NewAgreementForm({ onChanged }: { onChanged: () => void }) {
          initAgreement(program, {
             client: clientKey,
             courier: courierKey,
-            deliveryTimeoutSecs: Math.round(hours * 3600),
+            deliveryTimeoutSecs: secs,
          }),
       );
       if (ok) onChanged();
@@ -127,9 +150,15 @@ function NewAgreementForm({ onChanged }: { onChanged: () => void }) {
                <input value={courier} onChange={(e) => setCourier(e.target.value)} placeholder="Courier address" />
             </label>
             <label>
-               Delivery deadline after payment (hours)
-               {/* BACKEND-DEPENDENT: the program may enforce min/max timeouts; for a live demo use a few minutes (e.g. 0.05). */}
-               <input value={timeoutHours} onChange={(e) => setTimeoutHours(e.target.value)} />
+               Delivery deadline after payment (client can refund after this; max 90 days)
+               <span className="row">
+                  <input value={timeoutValue} onChange={(e) => setTimeoutValue(e.target.value)} />
+                  <select value={unit} onChange={(e) => setUnit(e.target.value as keyof typeof UNIT_SECS)}>
+                     <option value="minutes">minutes</option>
+                     <option value="hours">hours</option>
+                     <option value="days">days</option>
+                  </select>
+               </span>
             </label>
             {formError && <p className="error">{formError}</p>}
             <button type="submit" disabled={!!pending}>

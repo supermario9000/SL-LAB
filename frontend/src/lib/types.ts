@@ -4,7 +4,7 @@ import type { PublicKey } from "@solana/web3.js";
 // Anchor account layout: src/lib/contract.ts converts raw accounts into these types,
 // so a change in the program's field names only needs fixing in one place.
 
-// BACKEND-DEPENDENT: status names and their order must match the `OrderStatus` enum in state.rs.
+// MIRRORS: state.rs `OrderStatus` (same names, same order).
 export const ORDER_STATUSES = [
    "Created",
    "Processed",
@@ -23,7 +23,7 @@ export interface Agreement {
    courier: PublicKey;
    deliveryTimeoutSecs: number;
    accepted: boolean;
-   orderCount: bigint;
+   nextOrderId: bigint; // id the next order must use (= number of orders so far)
 }
 
 export interface Order {
@@ -33,6 +33,7 @@ export interface Order {
    status: OrderStatus;
    fulfillmentPrice: bigint; // lamports
    shipmentPrice: bigint; // lamports
+   createdAt: number; // unix seconds
    paidAt: number | null; // unix seconds, null until paid
    invoiceHash: string | null; // hex sha256, null until invoiced
 }
