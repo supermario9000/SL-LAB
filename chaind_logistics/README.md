@@ -9,7 +9,7 @@ rationale and `../PLAN.md` for the implementation plan this was built from.
 ## Repo map
 
 ```
-logictics/
+chaind_logistics/
   programs/chaind_logistics/src/
     lib.rs              # #[program] module; only dispatches to instructions/<name>.rs
     constants.rs         # PDA seeds, delivery timeout bounds
@@ -21,7 +21,8 @@ logictics/
     instructions/             # one file per instruction: Accounts struct + handle_<name>
   tests/chaind_logistics.ts    # integration tests (Anchor + mocha/chai)
   app/                   # Vite + React + Wallet Adapter UI (not yet scaffolded)
-  scripts/               # sync-idl.sh, seed-demo.ts (not yet added)
+  scripts/
+    devnet-smoke-test.ts  # runs the full escrow flow on devnet with real transactions
 ```
 
 ## How to run
@@ -30,7 +31,7 @@ Inside the project's dev container (Anchor 1.1.2, Rust 1.95.0, Surfpool, Node 24
 see `../Dockerfile` / `../.devcontainer`):
 
 ```bash
-cd logictics
+cd chaind_logistics
 anchor build && anchor keys sync   # keys sync only once
 cargo fmt --check && cargo clippy && cargo test -p chaind_logistics && anchor test
 ```
@@ -45,6 +46,59 @@ on-chain program, boots a local validator, and runs every integration test in
 > error from a failing `anchor build` — it reports the real version) — it is
 > a separate compiler from the one `rust-toolchain.toml` selects for plain
 > `cargo` commands, and setting `rust-version` above it breaks `anchor build`.
+
+## Deploying to devnet
+
+```bash
+solana config set --url devnet
+solana balance                      # check first — you may already have enough
+solana airdrop 2                    # if not; see note below if this fails
+```
+
+The public devnet faucet is commonly rate-limited by IP, especially from
+shared/cloud environments. If `solana airdrop` fails, get `solana address`'s
+pubkey funded at **https://faucet.solana.com** instead.
+
+Before deploying, make sure `declare_id!()` in `lib.rs`, both `[programs.*]`
+entries in `Anchor.toml`, and `target/deploy/chaind_logistics-keypair.json`
+all agree on the same program id — `anchor keys sync` reconciles them to
+whatever the keypair file currently holds:
+
+```bash
+anchor keys sync
+anchor build
+```
+
+Then deploy and publish the IDL so Explorer and other clients can decode
+your instructions instead of raw bytes:
+
+```bash
+anchor deploy --provider.cluster devnet
+anchor idl init --provider.cluster devnet \
+  --filepath target/idl/chaind_logistics.json <PROGRAM_ID>
+```
+
+Back up `target/deploy/chaind_logistics-keypair.json` somewhere outside git
+*before* deploying — it determines the program id, and losing it means you
+can't upgrade that same program again later.
+
+Verify it's really live with a meaningful test (not just a balance check) —
+this runs the full agreement → order → `Closed` flow against the deployed
+program with three real devnet wallets, printing an Explorer link for every
+transaction:
+
+```bash
+npm run devnet:smoke
+```
+
+It funds its throwaway provider/client wallets by transferring SOL from your
+own `~/.config/solana/id.json` (not by airdropping), and every run spends
+~0.02 SOL that ends up unrecoverable in those throwaway wallets — cheap on
+devnet, but don't run it on a loop.
+
+Always double check `solana config get` before deploying anything — the
+Solana CLI's default cluster is `mainnet-beta`, and a config reset (e.g. a
+fresh container) silently reverts to it even after you've set `devnet`.
 
 ## Enforcement points (`grep -rn ENFORCES programs/`)
 
