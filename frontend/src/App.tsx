@@ -11,6 +11,7 @@ import { RPC_URL } from "./config";
 import { useAgreements, useOrders } from "./hooks/useChainData";
 import { TxProvider } from "./hooks/useTx";
 import { AgreementPanel } from "./components/AgreementPanel";
+import { DevnetGuard } from "./components/DevnetGuard";
 import { Header } from "./components/Header";
 import { OrderDetail } from "./components/OrderDetail";
 import { OrderList } from "./components/OrderList";
@@ -25,9 +26,12 @@ export default function App() {
             <WalletModalProvider>
                <TxProvider>
                   <main className="app">
-                     <Header />
-                     <Dashboard />
-                     <TxLog />
+                     {/* Nothing below renders (no wallet button, no transactions) unless the RPC is devnet. */}
+                     <DevnetGuard>
+                        <Header />
+                        <Dashboard />
+                        <TxLog />
+                     </DevnetGuard>
                   </main>
                </TxProvider>
             </WalletModalProvider>

@@ -17,6 +17,7 @@
   gap: 12px;
 }
 .header .banner { flex-basis: 100%; }
+.header h1 .pill { vertical-align: middle; font-size: 12px; font-weight: 500; }
 
 .grid {
   display: grid;

@@ -1,16 +1,17 @@
 # Frontend: Trustless Order Fulfillment
 
-A rough React UI for the `chaind_logistics` Solana escrow program. A 3PL, a client and a courier each
+**Devnet only. This is a proof of concept.** A rough React UI for the `chaind_logistics` Solana escrow program. A 3PL, a client and a courier each
 connect a wallet and click through one order, from creation to payout, with an Explorer link for every
 transaction.
 
 **New to this code? Start with [docs/GUIDE.md](docs/GUIDE.md).** It walks through every file,
 maps each part to the Rust code it mirrors, and explains how it was tested.
 
-> ⚠️ The program currently deployed at the repo's id (`D4Zu8f…`) was built for a different id and
-> rejects every transaction. Redeploy it, or temporarily set
-> `VITE_PROGRAM_ID=9un2SfWqP437NoikxbJDPbBQBYdsL99e1b75S2wMR262` in `frontend/.env`.
-> See [docs/GUIDE.md §7](docs/GUIDE.md#7-backend-review-and-the-deployment-problem).
+Program id: `9un2SfWqP437NoikxbJDPbBQBYdsL99e1b75S2wMR262` (devnet), the same as `declare_id!` in
+`chaind_logistics/programs/chaind_logistics/src/lib.rs`.
+
+The app checks at startup that its RPC is Solana devnet (by genesis hash) and refuses to run on any
+other network. `VITE_RPC_URL` may only point at another devnet endpoint.
 
 ## Run
 

@@ -22,9 +22,11 @@ export function Header() {
    return (
       <header className="header">
          <div>
-            <h1>Trustless Order Fulfillment</h1>
+            <h1>
+               Trustless Order Fulfillment <span className="pill warn">Devnet only · proof of concept</span>
+            </h1>
             <p className="muted">
-               Escrowed 3PL + courier payments on Solana {CLUSTER}. Program{" "}
+               Escrowed 3PL + courier payments on Solana {CLUSTER}, with free test SOL (no real value). Program{" "}
                <a href={explorerAddress(PROGRAM_ID)} target="_blank" rel="noreferrer" className="mono">
                   {shortAddress(PROGRAM_ID)}
                </a>
