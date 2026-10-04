@@ -19,7 +19,16 @@ export function TxLog() {
                         confirmed: view on Explorer ↗
                      </a>
                   )}
-                  {e.status === "error" && <span className="error">failed: {e.error}</span>}
+                  {e.status === "error" && (
+                     <>
+                        <span className="error">failed: {e.error}</span>{" "}
+                        {e.signature && (
+                           <a href={explorerTx(e.signature)} target="_blank" rel="noreferrer">
+                              view on Explorer ↗
+                           </a>
+                        )}
+                     </>
+                  )}
                </li>
             ))}
          </ul>

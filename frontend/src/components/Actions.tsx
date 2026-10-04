@@ -100,8 +100,7 @@ export function Actions({ agreement, order, now, onChanged }: Props) {
                   )
                }
             >
-               Confirm delivery: pay {formatSol(order.fulfillmentPrice)} to 3PL and{" "}
-               {formatSol(order.shipmentPrice)} to courier
+               Confirm delivery with proof of delivery
             </button>
          )}
 

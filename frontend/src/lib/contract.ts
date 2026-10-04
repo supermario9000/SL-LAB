@@ -3,16 +3,17 @@
 // Program source: chaind_logistics/programs/chaind_logistics/src/. Each MIRRORS note names the
 // file to compare with if the program changes.
 
-import { AnchorError, BN, type AccountClient, type Program } from "@coral-xyz/anchor";
+import { AnchorError, AnchorProvider, BN, type AccountClient, type Program } from "@coral-xyz/anchor";
 import {
    Keypair,
    SystemProgram,
    TransactionMessage,
    VersionedTransaction,
    type PublicKey,
+   type Transaction,
 } from "@solana/web3.js";
 import { PROGRAM_ID } from "../config";
-import { hexToBytes } from "./format";
+import { formatSol, hexToBytes } from "./format";
 import { agreementPda, orderPda } from "./pda";
 import {
    ORDER_STATUSES,
@@ -152,12 +153,60 @@ export async function checkDeployment(
 
 const wallet = (program: Program) => program.provider.publicKey!;
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Builds the instruction(s) with Anchor as before, but sends and confirms the transaction by
+// polling `getSignatureStatus` ourselves instead of using `.rpc()`'s built-in confirm. `.rpc()`
+// confirms by waiting on an RPC websocket push for the signature notification; the public devnet
+// endpoint can delay or simply drop that push, which is why transactions were timing out at a
+// flat 30 seconds even though they'd already landed. Polling only needs the plain HTTP endpoint
+// to answer — far more reliable here — and usually finds a devnet confirmation within one or two
+// ~500ms slots.
+async function sendAndConfirm(program: Program, tx: Transaction): Promise<string> {
+   const provider = program.provider as AnchorProvider;
+   const { connection, wallet: signer } = provider;
+   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+   tx.recentBlockhash = blockhash;
+   tx.feePayer = signer.publicKey;
+   const signed = await signer.signTransaction(tx);
+   const signature = await connection.sendRawTransaction(signed.serialize());
+
+   for (;;) {
+      const status = await connection
+         .getSignatureStatus(signature)
+         .then((r) => r.value, () => null);
+
+      if (status?.err) {
+         const landed = await connection.getTransaction(signature, {
+            commitment: "confirmed",
+            maxSupportedTransactionVersion: 0,
+         });
+         throw Object.assign(new Error("Transaction failed on-chain."), {
+            signature,
+            logs: landed?.meta?.logMessages,
+         });
+      }
+      if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") {
+         return signature;
+      }
+      if ((await connection.getBlockHeight()) > lastValidBlockHeight) {
+         throw Object.assign(
+            new Error(
+               "Transaction was not confirmed before its blockhash expired. It may still land — check the signature on Explorer.",
+            ),
+            { signature },
+         );
+      }
+      await sleep(800);
+   }
+}
+
 export async function initAgreement(
    program: Program,
    args: { client: PublicKey; courier: PublicKey; deliveryTimeoutSecs: number },
 ): Promise<string> {
    const provider = wallet(program);
-   return program.methods
+   const tx = await program.methods
       .initAgreement(args.courier, new BN(args.deliveryTimeoutSecs))
       .accountsPartial({
          provider,
@@ -165,17 +214,19 @@ export async function initAgreement(
          agreement: agreementPda(provider, args.client),
          systemProgram: SystemProgram.programId,
       })
-      .rpc();
+      .transaction();
+   return sendAndConfirm(program, tx);
 }
 
 export async function acceptAgreement(
    program: Program,
    agreement: Agreement,
 ): Promise<string> {
-   return program.methods
+   const tx = await program.methods
       .acceptAgreement()
       .accountsPartial({ client: wallet(program), agreement: agreement.address })
-      .rpc();
+      .transaction();
+   return sendAndConfirm(program, tx);
 }
 
 // The program requires order_id == agreement.next_order_id (create_order.rs), then increments it.
@@ -186,7 +237,7 @@ export async function createOrder(
    agreement: Agreement,
 ): Promise<string> {
    const orderId = agreement.nextOrderId;
-   return program.methods
+   const tx = await program.methods
       .createOrder(new BN(orderId.toString()))
       .accountsPartial({
          provider: wallet(program),
@@ -194,7 +245,8 @@ export async function createOrder(
          order: orderPda(agreement.address, orderId),
          systemProgram: SystemProgram.programId,
       })
-      .rpc();
+      .transaction();
+   return sendAndConfirm(program, tx);
 }
 
 const providerOrderAccounts = (program: Program, order: Order) => ({
@@ -219,12 +271,19 @@ export async function setPrices(
       program.methods.setShipmentPrice(new BN(l.toString())).accountsPartial(accounts);
 
    if (fulfillment !== null && shipment !== null) {
-      return setFulfillment(fulfillment)
+      const tx = await setFulfillment(fulfillment)
          .postInstructions([await setShipment(shipment).instruction()])
-         .rpc();
+         .transaction();
+      return sendAndConfirm(program, tx);
    }
-   if (fulfillment !== null) return setFulfillment(fulfillment).rpc();
-   if (shipment !== null) return setShipment(shipment).rpc();
+   if (fulfillment !== null) {
+      const tx = await setFulfillment(fulfillment).transaction();
+      return sendAndConfirm(program, tx);
+   }
+   if (shipment !== null) {
+      const tx = await setShipment(shipment).transaction();
+      return sendAndConfirm(program, tx);
+   }
    throw new Error("Enter a fulfillment fee, a shipping fee, or both.");
 }
 
@@ -232,17 +291,18 @@ export async function markProcessed(
    program: Program,
    order: Order,
 ): Promise<string> {
-   return program.methods
+   const tx = await program.methods
       .markProcessed()
       .accountsPartial(providerOrderAccounts(program, order))
-      .rpc();
+      .transaction();
+   return sendAndConfirm(program, tx);
 }
 
 // expected_total is the total the client saw on screen. If the 3PL somehow changed a price
 // in between, the program rejects the payment instead of charging a different amount.
 export async function pay(program: Program, order: Order): Promise<string> {
    const total = order.fulfillmentPrice + order.shipmentPrice;
-   return program.methods
+   const tx = await program.methods
       .pay(new BN(total.toString()))
       .accountsPartial({
          client: wallet(program),
@@ -250,7 +310,8 @@ export async function pay(program: Program, order: Order): Promise<string> {
          order: order.address,
          systemProgram: SystemProgram.programId,
       })
-      .rpc();
+      .transaction();
+   return sendAndConfirm(program, tx);
 }
 
 export async function sendInvoice(
@@ -258,10 +319,11 @@ export async function sendInvoice(
    order: Order,
    sha256Hex: string,
 ): Promise<string> {
-   return program.methods
+   const tx = await program.methods
       .sendInvoice(hexToBytes(sha256Hex))
       .accountsPartial(providerOrderAccounts(program, order))
-      .rpc();
+      .transaction();
+   return sendAndConfirm(program, tx);
 }
 
 // The 3PL's wallet is passed so the program can pay it; `has_one = provider` checks it.
@@ -270,7 +332,7 @@ export async function confirmDelivery(
    agreement: Agreement,
    order: Order,
 ): Promise<string> {
-   return program.methods
+   const tx = await program.methods
       .confirmDelivery()
       .accountsPartial({
          courier: wallet(program),
@@ -278,7 +340,8 @@ export async function confirmDelivery(
          agreement: order.agreement,
          order: order.address,
       })
-      .rpc();
+      .transaction();
+   return sendAndConfirm(program, tx);
 }
 
 // The signer may be the 3PL or the client (cancel_order.rs checks which).
@@ -286,28 +349,30 @@ export async function cancelOrder(
    program: Program,
    order: Order,
 ): Promise<string> {
-   return program.methods
+   const tx = await program.methods
       .cancelOrder()
       .accountsPartial({
          signer: wallet(program),
          agreement: order.agreement,
          order: order.address,
       })
-      .rpc();
+      .transaction();
+   return sendAndConfirm(program, tx);
 }
 
 export async function refundExpired(
    program: Program,
    order: Order,
 ): Promise<string> {
-   return program.methods
+   const tx = await program.methods
       .refundExpired()
       .accountsPartial({
          client: wallet(program),
          agreement: order.agreement,
          order: order.address,
       })
-      .rpc();
+      .transaction();
+   return sendAndConfirm(program, tx);
 }
 
 // ---------- Errors ----------
@@ -327,6 +392,13 @@ export function describeError(err: unknown): string {
    }
    const msg = [e?.message ?? String(err), ...(e?.logs ?? [])].join("\n");
    if (/User rejected/i.test(msg)) return "You rejected the transaction in your wallet.";
+   // The `pay` instruction's CPI transfer fails this way (System Program error 0x1) when the
+   // wallet's balance can't cover the order total; the raw log names the exact lamport amounts.
+   const shortfall = /insufficient lamports (\d+), need (\d+)/i.exec(msg);
+   if (shortfall) {
+      const [, have, need] = shortfall;
+      return `The wallet has insufficient funds: it holds ${formatSol(BigInt(have))} but this payment needs ${formatSol(BigInt(need))}. Add more devnet SOL and try again.`;
+   }
    if (/already in use/i.test(msg))
       return "That account already exists (e.g. an agreement with this client, or an order id that was just used). Refresh and try again.";
    if (/program that does not exist|ProgramAccountNotFound/i.test(msg))

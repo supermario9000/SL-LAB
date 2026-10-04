@@ -46,7 +46,10 @@ export function TxProvider({ children }: { children: ReactNode }) {
             return true;
          } catch (err) {
             console.error(label, err);
-            update({ status: "error", error: describeError(err) });
+            // `sendAndConfirm` (lib/contract.ts) attaches the signature to its errors even on
+            // failure, so the log can still link to the Explorer (AGENTS.md: every transaction).
+            const signature = (err as { signature?: string })?.signature;
+            update({ status: "error", error: describeError(err), signature });
             return false;
          } finally {
             setPending(null);
