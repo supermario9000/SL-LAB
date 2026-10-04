@@ -7,6 +7,7 @@ Currently at: HackYeah.pl
 Devcontainer environment for the Superteam Poland Solana Bootcamp.
 
 ## How to run demo
+NOTE: Smart contract functionality is already deployed to devnet, there is no need to do it yourself.
 
 ### Install dependencies
 Install npm and docker.
