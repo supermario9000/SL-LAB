@@ -59,12 +59,6 @@ The public devnet faucet is commonly rate-limited by IP, especially from
 shared/cloud environments. If `solana airdrop` fails, get `solana address`'s
 pubkey funded at **https://faucet.solana.com** instead.
 
-**Program id:** `9un2SfWqP437NoikxbJDPbBQBYdsL99e1b75S2wMR262` (devnet, upgrade
-authority `GoPKZanNGZ813BYi3KDsHE9AT8ku74hfcG28C7Y32rNt`). An earlier deployment at
-`D4Zu8fGYGib6G18fu9XmMbDDrQB8hFQd7ge1MUax1Pna` was built for the wrong id and is
-abandoned. If your `target/deploy/chaind_logistics-keypair.json` is not the
-keypair for `9un2Sf…`, do **not** run `anchor keys sync`: it would rewrite
-`declare_id!` and `Anchor.toml` to that keypair's address.
 
 Before deploying, make sure `declare_id!()` in `lib.rs`, both `[programs.*]`
 entries in `Anchor.toml`, and `target/deploy/chaind_logistics-keypair.json`
