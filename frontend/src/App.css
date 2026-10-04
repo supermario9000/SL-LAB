@@ -171,3 +171,24 @@ summary { cursor: pointer; color: var(--accent); }
 
 .txlog { list-style: none; padding: 0; margin: 0; font-size: 13px; }
 .txlog li { padding: 4px 0; border-bottom: 1px solid var(--border); }
+
+/* Invoice (generated from on-chain data, see src/lib/invoice.ts) */
+.invoice {
+  margin-top: 10px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+.invoice-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.invoice-lines { margin: 12px 0 8px; }
+.invoice-lines tbody tr { cursor: default; }
+.invoice-lines tfoot th { color: var(--text-h); font-size: 14px; }
+.num { text-align: right; white-space: nowrap; }
+
+/* "Download PDF" prints only the open invoice, in black on white. */
+@media print {
+  body * { visibility: hidden; }
+  .invoice, .invoice * { visibility: visible; color: #000 !important; }
+  .invoice { position: absolute; inset: 0 auto auto 0; width: 100%; border: none; background: #fff; }
+}

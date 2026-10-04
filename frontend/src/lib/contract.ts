@@ -203,26 +203,29 @@ const providerOrderAccounts = (program: Program, order: Order) => ({
    order: order.address,
 });
 
-export async function setFulfillmentPrice(
+// Sets one or both fees. Both go in ONE transaction: a single wallet approval, and either both
+// fees are set or neither (two separate transactions could leave only the first one applied).
+// `null` leaves that fee unchanged.
+export async function setPrices(
    program: Program,
    order: Order,
-   lamports: bigint,
+   fulfillment: bigint | null,
+   shipment: bigint | null,
 ): Promise<string> {
-   return program.methods
-      .setFulfillmentPrice(new BN(lamports.toString()))
-      .accountsPartial(providerOrderAccounts(program, order))
-      .rpc();
-}
+   const accounts = providerOrderAccounts(program, order);
+   const setFulfillment = (l: bigint) =>
+      program.methods.setFulfillmentPrice(new BN(l.toString())).accountsPartial(accounts);
+   const setShipment = (l: bigint) =>
+      program.methods.setShipmentPrice(new BN(l.toString())).accountsPartial(accounts);
 
-export async function setShipmentPrice(
-   program: Program,
-   order: Order,
-   lamports: bigint,
-): Promise<string> {
-   return program.methods
-      .setShipmentPrice(new BN(lamports.toString()))
-      .accountsPartial(providerOrderAccounts(program, order))
-      .rpc();
+   if (fulfillment !== null && shipment !== null) {
+      return setFulfillment(fulfillment)
+         .postInstructions([await setShipment(shipment).instruction()])
+         .rpc();
+   }
+   if (fulfillment !== null) return setFulfillment(fulfillment).rpc();
+   if (shipment !== null) return setShipment(shipment).rpc();
+   throw new Error("Enter a fulfillment fee, a shipping fee, or both.");
 }
 
 export async function markProcessed(

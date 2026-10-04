@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { Address } from "./Address";
 import { Actions } from "./Actions";
-import { formatDate, formatDuration, formatSol, sha256Hex } from "../lib/format";
+import { InvoicePanel } from "./Invoice";
+import { formatDate, formatDuration, formatSol } from "../lib/format";
 import { refundAvailableAt } from "../lib/permissions";
 import { HAPPY_PATH, STATUS_INFO, isTerminal } from "../lib/status";
 import type { Agreement, Order } from "../lib/types";
@@ -70,7 +71,7 @@ export function OrderDetail({ agreement, order, onChanged }: Props) {
             </div>
          )}
 
-         {order.invoiceHash && <InvoiceCheck hash={order.invoiceHash} />}
+         <InvoicePanel agreement={agreement} order={order} />
 
          {!isTerminal(order.status) && (
             <Actions agreement={agreement} order={order} now={now} onChanged={onChanged} />
@@ -91,32 +92,6 @@ function StatusTimeline({ order }: { order: Order }) {
          ))}
          {offPath && <li className="done off">{STATUS_INFO[order.status].label}</li>}
       </ol>
-   );
-}
-
-// Anyone holding the invoice file can check it matches the fingerprint stored on-chain.
-function InvoiceCheck({ hash }: { hash: string }) {
-   const [result, setResult] = useState<"match" | "mismatch" | null>(null);
-   return (
-      <div className="sub">
-         <div className="small">
-            Invoice fingerprint (SHA-256): <span className="mono break">{hash}</span>
-         </div>
-         <label className="small">
-            Verify an invoice file:{" "}
-            <input
-               type="file"
-               onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const h = await sha256Hex(await file.arrayBuffer());
-                  setResult(h === hash ? "match" : "mismatch");
-               }}
-            />
-         </label>
-         {result === "match" && <p className="ok-text">✓ This file is the invoice recorded on-chain.</p>}
-         {result === "mismatch" && <p className="error">✗ This file does not match the on-chain invoice.</p>}
-      </div>
    );
 }
 

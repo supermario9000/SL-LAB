@@ -3,9 +3,11 @@ import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { useProgram } from "../hooks/useProgram";
 import { useTx } from "../hooks/useTx";
 import * as contract from "../lib/contract";
-import { formatSol, parseSol, sha256Hex } from "../lib/format";
+import { formatSol, parseSol } from "../lib/format";
+import { buildInvoice, invoiceHash } from "../lib/invoice";
 import { allowedOrderActions, ROLE_LABEL, rolesFor } from "../lib/permissions";
 import type { Agreement, Order } from "../lib/types";
+import { InvoiceDocument } from "./Invoice";
 
 interface Props {
    agreement: Agreement;
@@ -50,11 +52,8 @@ export function Actions({ agreement, order, now, onChanged }: Props) {
             <PriceForm
                order={order}
                disabled={!!pending}
-               onSetFulfillment={(l) =>
-                  send("Set fulfillment fee", () => contract.setFulfillmentPrice(program, order, l))
-               }
-               onSetShipment={(l) =>
-                  send("Set shipping fee", () => contract.setShipmentPrice(program, order, l))
+               onSetPrices={(f, s) =>
+                  send("Set fees", () => contract.setPrices(program, order, f, s))
                }
             />
          )}
@@ -83,9 +82,11 @@ export function Actions({ agreement, order, now, onChanged }: Props) {
          )}
 
          {actions.includes("sendInvoice") && (
-            <InvoiceForm
+            <IssueInvoice
+               agreement={agreement}
+               order={order}
                disabled={!!pending}
-               onSend={(hash) => send("Send invoice", () => contract.sendInvoice(program, order, hash))}
+               onIssue={(hash) => send("Issue invoice", () => contract.sendInvoice(program, order, hash))}
             />
          )}
 
@@ -136,8 +137,7 @@ export function Actions({ agreement, order, now, onChanged }: Props) {
 function PriceForm(props: {
    order: Order;
    disabled: boolean;
-   onSetFulfillment: (lamports: bigint) => Promise<boolean>;
-   onSetShipment: (lamports: bigint) => Promise<boolean>;
+   onSetPrices: (fulfillment: bigint | null, shipment: bigint | null) => Promise<boolean>;
 }) {
    // Left blank on purpose: a pre-filled placeholder amount is too easy to submit by accident
    // instead of the real fee. The review step below is the second safety net for the same reason.
@@ -164,19 +164,16 @@ function PriceForm(props: {
       }
    }
 
-   // Each fee is a separate on-chain instruction, so this sends them one at a time and stops
-   // (keeping the review open) if one is rejected, instead of firing the next regardless.
+   // Both fees are sent in one transaction; if it is rejected the review stays open.
    async function confirm() {
       if (!review) return;
-      if (review.fulfillment !== null && !(await props.onSetFulfillment(review.fulfillment))) return;
-      if (review.shipment !== null && !(await props.onSetShipment(review.shipment))) return;
+      if (!(await props.onSetPrices(review.fulfillment, review.shipment))) return;
       setReview(null);
       setFulfillment("");
       setShipment("");
    }
 
    if (review) {
-      const pendingCount = [review.fulfillment, review.shipment].filter((v) => v !== null).length;
       const newTotal =
          (review.fulfillment ?? props.order.fulfillmentPrice) + (review.shipment ?? props.order.shipmentPrice);
       return (
@@ -204,7 +201,7 @@ function PriceForm(props: {
                   Back
                </button>
                <button type="button" disabled={props.disabled} onClick={confirm}>
-                  Confirm & submit ({pendingCount} transaction{pendingCount > 1 ? "s" : ""})
+                  Confirm & submit
                </button>
             </span>
          </div>
@@ -238,31 +235,23 @@ function PriceForm(props: {
    );
 }
 
-// The invoice file stays off-chain; only its SHA-256 fingerprint is stored by the program.
-function InvoiceForm({ disabled, onSend }: { disabled: boolean; onSend: (hash: string) => void }) {
-   const [hash, setHash] = useState<string | null>(null);
-   const [name, setName] = useState("");
+// The invoice is generated from the order's on-chain data; only its SHA-256 fingerprint is
+// stored by the program. The client rebuilds the same invoice to check it (see Invoice.tsx).
+function IssueInvoice(props: {
+   agreement: Agreement;
+   order: Order;
+   disabled: boolean;
+   onIssue: (hash: string) => void;
+}) {
+   const invoice = buildInvoice(props.agreement, props.order);
    return (
       <div className="form">
-         <label>
-            Invoice file (PDF or any file; only its fingerprint goes on-chain)
-            <input
-               type="file"
-               onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  setName(file.name);
-                  setHash(await sha256Hex(await file.arrayBuffer()));
-               }}
-            />
-         </label>
-         {hash && (
-            <p className="small">
-               {name}: <span className="mono break">{hash}</span>
-            </p>
-         )}
-         <button disabled={disabled || !hash} onClick={() => hash && onSend(hash)}>
-            Send invoice
+         <details>
+            <summary>Preview invoice {invoice.number}</summary>
+            <InvoiceDocument invoice={invoice} />
+         </details>
+         <button disabled={props.disabled} onClick={async () => props.onIssue(await invoiceHash(invoice))}>
+            Issue invoice
          </button>
       </div>
    );

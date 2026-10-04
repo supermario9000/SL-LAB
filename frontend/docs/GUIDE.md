@@ -31,7 +31,7 @@ There are three roles, and each wallet only sees the buttons that fit its role a
 | 4 | 3PL | "Set" fulfillment fee / shipping fee (either may be 0, not both) | `set_fulfillment_price`, `set_shipment_price` |
 | 5 | 3PL | "Mark packed & ready for payment" (locks prices) | `mark_processed` |
 | 6 | Client | "Pay X SOL into escrow" | `pay(expected_total)` |
-| 7 | 3PL | Pick invoice file, then "Send invoice" (only its SHA-256 goes on-chain) | `send_invoice(invoice_hash)` |
+| 7 | 3PL | "Issue invoice": the app builds the invoice from on-chain data; only its SHA-256 goes on-chain | `send_invoice(invoice_hash)` |
 | 8 | Courier | "Confirm delivery: pay … to 3PL and … to courier" | `confirm_delivery` |
 | before payment | 3PL or client | "Cancel order" | `cancel_order` |
 | after the deadline | Client | "Claim full refund" | `refund_expired` |
@@ -40,7 +40,8 @@ The UI also shows things that help the demo's "the intermediary disappears" mome
 - **The order account's real SOL balance** (read straight from the chain), so you can see the escrow.
 - **A blue banner** while money is in escrow, explaining that only delivery or the deadline can release it.
 - **A refund countdown**, so the "what if someone disappears?" answer is visible.
-- **An invoice checker**: anyone can drop the invoice file in and see if it matches the on-chain fingerprint.
+- **A self-checking invoice**: anyone can open "View invoice". The app rebuilds it from on-chain data,
+  checks it against the stored fingerprint, and can save it as a PDF.
 - **A transaction log** with a Solana Explorer link for every transaction.
 
 Rules from the program that shape the UI:
@@ -123,7 +124,13 @@ Small helpers with no Solana logic:
 - `formatSol(lamports)` gives `"0.015 SOL"`; `parseSol("0.015")` gives lamports (exact, no floats).
 - `shortAddress`, `explorerTx`, `explorerAddress` build `Abcd…wxyz` labels and Explorer links.
 - `formatDate`, `formatDuration` for timestamps and the refund countdown.
-- `sha256Hex(file)` fingerprints the invoice file in the browser (the file never leaves your machine).
+- `sha256Hex(data)` computes a SHA-256 fingerprint in the browser.
+
+### `src/lib/invoice.ts`
+`buildInvoice(agreement, order)` builds the invoice from on-chain data only (parties, order, fees, paid
+time), and `invoiceHash(invoice)` fingerprints it. The 3PL and the client run the same code, so they get
+the same fingerprint. The format is versioned (`chaind-logistics-invoice/v1`): any change to the fields
+changes every fingerprint, so add a v2 instead of editing v1.
 
 ### `src/lib/pda.ts`
 PDAs (Program Derived Addresses) are account addresses computed from "seeds". This lets the UI work
@@ -194,8 +201,9 @@ strings and looked up in the freshly polled lists, so they always show current d
 | `Header.tsx` | Title, program id link, wallet button, and a warning if the program is missing or built for the wrong id |
 | `AgreementPanel.tsx` | Your agreements (role, parties, deadline), "Accept terms" for the client, and the "create agreement" form for a 3PL. The form checks the program's rules before sending (distinct wallets, one agreement per client, 1 s–90 day deadline in minutes/hours/days) |
 | `OrderList.tsx` | The selected agreement's orders (id, status, total) and "+ Register order" for the 3PL |
-| `OrderDetail.tsx` | Status timeline, fees, registered/paid times, escrow balance, refund countdown, invoice checker; it renders `Actions` |
-| `Actions.tsx` | Only the buttons `permissions.ts` allows: price form, mark ready, pay, invoice upload, confirm delivery, refund, cancel |
+| `OrderDetail.tsx` | Status timeline, fees, registered/paid times, escrow balance, refund countdown, invoice panel; it renders `Actions` |
+| `Actions.tsx` | Only the buttons `permissions.ts` allows: price form, mark ready, pay, issue invoice (with preview), confirm delivery, refund, cancel |
+| `Invoice.tsx` | The invoice document, and the panel that rebuilds it from chain data, shows ✓ when it matches the on-chain fingerprint, and prints it as a PDF |
 | `TxLog.tsx` | Every transaction from this tab, with Explorer links |
 | `Address.tsx` | A short address that links to Explorer, with "(you)" for your own wallet |
 
@@ -271,7 +279,7 @@ the order total). Use three browser profiles, or switch accounts in the wallet.
 2. **Client**: connect, click "Accept terms".
 3. **3PL**: "+ Register order", set both fees, then "Mark packed & ready for payment".
 4. **Client**: "Pay X SOL into escrow". Show the order account balance and open the transaction on Explorer.
-5. **3PL**: choose any PDF as the invoice, "Send invoice".
+5. **3PL**: preview the invoice, then "Issue invoice". **Client**: "View invoice" shows ✓ and "Download PDF".
 6. **Courier**: "Confirm delivery". On Explorer, show that one transaction paid both the 3PL and the courier.
 7. *Alternative ending*: skip step 6, wait for the deadline, then as the client click "Claim full refund".
 
@@ -385,5 +393,6 @@ filled in `OrderDetail.tsx`, and added `config.ts`, `polyfills.ts`, `lib/*`, `ho
 - If two orders are registered under one agreement at the same moment, the second fails ("already
   exists"). Refreshing and retrying fixes it.
 - The delivery confirmation is trusted: whatever the courier signs counts as delivered (a program-level limit).
-- The invoice file itself isn't stored. Only its SHA-256 is on-chain, so the 3PL sends the file off-chain.
+- The invoice only contains on-chain data (wallet addresses, not company names, addresses or VAT codes).
+  Orders invoiced with an uploaded file before this change can only be checked with that file.
 - The JS bundle is large (~880 kB) because of the Solana libraries. That's fine for a demo.
