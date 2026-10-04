@@ -5,11 +5,11 @@ package_manager = "npm"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-chaind_logistics = "D4Zu8fGYGib6G18fu9XmMbDDrQB8hFQd7ge1MUax1Pna"
-
 [programs.devnet]
 chaind_logistics = "D4Zu8fGYGib6G18fu9XmMbDDrQB8hFQd7ge1MUax1Pna"
+
+[programs.localnet]
+chaind_logistics = "9un2SfWqP437NoikxbJDPbBQBYdsL99e1b75S2wMR262"
 
 [provider]
 cluster = "localnet"
