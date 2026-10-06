@@ -1,0 +1,59 @@
+{
+  "name": "SL Lab — trustless checkout (Anchor/Solana)",
+
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "target": "toolchain",
+    "context": ".."
+  },
+
+  "remoteUser": "root",
+
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "forwardPorts": [8899],
+  "portsAttributes": {
+    "8899": { "label": "Surfpool RPC", "onAutoForward": "silent" }
+  },
+
+  "postCreateCommand": "npm install",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "vadimcn.vscode-lldb",
+
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+
+        "ms-azuretools.vscode-docker",
+
+        "usernamehw.error-lens",
+        "eamodio.gitlens",
+        "streetsidesoftware.code-spell-checker"
+      ],
+      "settings": {
+        "rust-analyzer.check.command": "clippy",
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "editor.formatOnSave": true,
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[rust]": {
+          "editor.defaultFormatter": "rust-lang.rust-analyzer"
+        }
+      }
+    }
+  },
+
+  "mounts": [
+    "source=sl-lab-cargo-registry,target=/root/.cargo/registry,type=volume",
+    "source=sl-lab-npm-cache,target=/root/.npm,type=volume"
+  ]
+}
